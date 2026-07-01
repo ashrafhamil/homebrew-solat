@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Malaysia-aware prayer times CLI (aladhan.com API, method 17 = JAKIM)
+set -euo pipefail
+
+CACHE_DIR="$HOME/.cache/solat"
+mkdir -p "$CACHE_DIR"
+LOC_FILE="$CACHE_DIR/location"
+TODAY=$(date +%Y%m%d)
+TIMINGS_FILE="$CACHE_DIR/timings-$TODAY.json"
+
+LOC=$(curl -s ipinfo.io/json)
+CITY=$(echo "$LOC" | jq -r '.city')
+COUNTRY=$(echo "$LOC" | jq -r '.country')
+
+OLD_LOC=""
+[[ -f "$LOC_FILE" ]] && OLD_LOC=$(cat "$LOC_FILE")
+NEW_LOC="$CITY $COUNTRY"
+
+if [[ "$NEW_LOC" != "$OLD_LOC" ]]; then
+  echo "$NEW_LOC" > "$LOC_FILE"
+  rm -f "$TIMINGS_FILE"
+fi
+
+if [[ ! -f "$TIMINGS_FILE" ]]; then
+  curl -sL "https://api.aladhan.com/v1/timingsByCity?city=$(echo "$CITY" | sed 's/ /%20/g')&country=${COUNTRY}&method=17" > "$TIMINGS_FILE"
+  find "$CACHE_DIR" -name 'timings-*.json' ! -name "timings-$TODAY.json" -delete
+fi
+
+NAMES=("Fajr" "Dhuhr" "Asr" "Maghrib" "Isha")
+LABELS=("Subuh" "Zohor" "Asar" "Maghrib" "Isyak")
+NOW=$(date +%H:%M)
+NEXT=""
+GREEN=$'\033[0;32m'
+RESET=$'\033[0m'
+
+for i in "${!NAMES[@]}"; do
+  T=$(jq -r ".data.timings.${NAMES[$i]}" "$TIMINGS_FILE" | cut -d' ' -f1)
+  MARK=""
+  if [[ -z "$NEXT" && "$T" > "$NOW" ]]; then
+    MARK=" <-"
+    NEXT=1
+  fi
+  printf "%s%-8s %s%s%s\n" "$GREEN" "${LABELS[$i]}" "$T" "$MARK" "$RESET"
+done
