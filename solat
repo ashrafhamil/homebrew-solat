@@ -6,5 +6,5 @@ n=$(date +%H:%M);x=
 for p in Fajr:Subuh Dhuhr:Zohor Asr:Asar Maghrib:Maghrib Isha:Isyak;do
 v=$(f ${p%:*}<<<"$j");m=
 [ -z "$x" ]&&[ "$v" \> "$n" ]&&{ m=" <-";x=1;}
-printf "%-8s %s%s\n" ${p#*:} $v "$m"
+printf "\033[32m%-8s %s%s\033[0m\n" ${p#*:} $v "$m"
 done
