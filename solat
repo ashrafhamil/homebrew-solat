@@ -1,47 +1,11 @@
 #!/usr/bin/env bash
-# Malaysia-aware prayer times CLI (aladhan.com API, method 17 = JAKIM), zero deps
 set -euo pipefail
-
-field() { sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" <<< "$1"; }
-
-CACHE_DIR="$HOME/.cache/solat"
-mkdir -p "$CACHE_DIR"
-LOC_FILE="$CACHE_DIR/location"
-TODAY=$(date +%Y%m%d)
-TIMINGS_FILE="$CACHE_DIR/timings-$TODAY.json"
-
-LOC=$(curl -s ipinfo.io/json)
-CITY=$(field "$LOC" city)
-COUNTRY=$(field "$LOC" country)
-
-OLD_LOC=""
-[[ -f "$LOC_FILE" ]] && OLD_LOC=$(cat "$LOC_FILE")
-NEW_LOC="$CITY $COUNTRY"
-
-if [[ "$NEW_LOC" != "$OLD_LOC" ]]; then
-  echo "$NEW_LOC" > "$LOC_FILE"
-  rm -f "$TIMINGS_FILE"
-fi
-
-if [[ ! -f "$TIMINGS_FILE" ]]; then
-  curl -sL "https://api.aladhan.com/v1/timingsByCity?city=$(echo "$CITY" | sed 's/ /%20/g')&country=${COUNTRY}&method=17" > "$TIMINGS_FILE"
-  find "$CACHE_DIR" -name 'timings-*.json' ! -name "timings-$TODAY.json" -delete
-fi
-
-TIMINGS=$(cat "$TIMINGS_FILE")
-NAMES=("Fajr" "Dhuhr" "Asr" "Maghrib" "Isha")
-LABELS=("Subuh" "Zohor" "Asar" "Maghrib" "Isyak")
-NOW=$(date +%H:%M)
-NEXT=""
-GREEN=$'\033[0;32m'
-RESET=$'\033[0m'
-
-for i in "${!NAMES[@]}"; do
-  T=$(field "$TIMINGS" "${NAMES[$i]}")
-  MARK=""
-  if [[ -z "$NEXT" && "$T" > "$NOW" ]]; then
-    MARK=" <-"
-    NEXT=1
-  fi
-  printf "%s%-8s %s%s%s\n" "$GREEN" "${LABELS[$i]}" "$T" "$MARK" "$RESET"
-done
+f(){ sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" <<<"$1"; }
+d="$HOME/.cache/solat"; mkdir -p "$d"; t=$(date +%Y%m%d); tf="$d/timings-$t.json"
+L=$(curl -s ipinfo.io/json); c=$(f "$L" city); k=$(f "$L" country)
+o=""; [[ -f "$d/location" ]] && o=$(cat "$d/location")
+[[ "$c $k" != "$o" ]] && { echo "$c $k" > "$d/location"; rm -f "$tf"; }
+[[ -f "$tf" ]] || { curl -sL "https://api.aladhan.com/v1/timingsByCity?city=${c// /%20}&country=$k&method=17" > "$tf"; find "$d" -name 'timings-*.json' ! -name "timings-$t.json" -delete; }
+j=$(cat "$tf"); n=$(date +%H:%M); x=""
+N=(Fajr Dhuhr Asr Maghrib Isha); Y=(Subuh Zohor Asar Maghrib Isyak)
+for i in "${!N[@]}"; do T=$(f "$j" "${N[$i]}"); m=""; [[ -z "$x" && "$T" > "$n" ]] && { m=" <-"; x=1; }; printf "\033[0;32m%-8s %s%s\033[0m\n" "${Y[$i]}" "$T" "$m"; done
