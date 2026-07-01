@@ -2,7 +2,7 @@ class Solat < Formula
   desc "Malaysia-aware prayer times CLI"
   homepage "https://github.com/ashrafhamil/homebrew-solat"
   url "https://github.com/ashrafhamil/homebrew-solat.git", branch: "main"
-  version "1.3.0"
+  version "1.4.0"
   license "MIT"
 
   def install

@@ -1,11 +1,7 @@
-#!/usr/bin/env bash
-set -euo pipefail
-f(){ sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" <<<"$1"; }
-d="$HOME/.cache/solat"; mkdir -p "$d"; t=$(date +%Y%m%d); tf="$d/timings-$t.json"
-L=$(curl -s ipinfo.io/json); c=$(f "$L" city); k=$(f "$L" country)
-o=""; [[ -f "$d/location" ]] && o=$(cat "$d/location")
-[[ "$c $k" != "$o" ]] && { echo "$c $k" > "$d/location"; rm -f "$tf"; }
-[[ -f "$tf" ]] || { curl -sL "https://api.aladhan.com/v1/timingsByCity?city=${c// /%20}&country=$k&method=17" > "$tf"; find "$d" -name 'timings-*.json' ! -name "timings-$t.json" -delete; }
-j=$(cat "$tf"); n=$(date +%H:%M); x=""
-N=(Fajr Dhuhr Asr Maghrib Isha); Y=(Subuh Zohor Asar Maghrib Isyak)
-for i in "${!N[@]}"; do T=$(f "$j" "${N[$i]}"); m=""; [[ -z "$x" && "$T" > "$n" ]] && { m=" <-"; x=1; }; printf "\033[0;32m%-8s %s%s\033[0m\n" "${Y[$i]}" "$T" "$m"; done
+#!/bin/bash
+f(){ sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p";}
+L=$(curl -s ipinfo.io/json);c=$(f city<<<"$L");k=$(f country<<<"$L")
+j=$(curl -sL "https://api.aladhan.com/v1/timingsByCity?city=${c// /%20}&country=$k&method=17")
+for p in Fajr:Subuh Dhuhr:Zohor Asr:Asar Maghrib:Maghrib Isha:Isyak;do
+printf "%-8s %s\n" ${p#*:} $(f ${p%:*}<<<"$j")
+done
