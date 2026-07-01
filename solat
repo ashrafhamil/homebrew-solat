@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Malaysia-aware prayer times CLI (aladhan.com API, method 17 = JAKIM)
+# Malaysia-aware prayer times CLI (aladhan.com API, method 17 = JAKIM), zero deps
 set -euo pipefail
+
+field() { sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" <<< "$1"; }
 
 CACHE_DIR="$HOME/.cache/solat"
 mkdir -p "$CACHE_DIR"
@@ -9,8 +11,8 @@ TODAY=$(date +%Y%m%d)
 TIMINGS_FILE="$CACHE_DIR/timings-$TODAY.json"
 
 LOC=$(curl -s ipinfo.io/json)
-CITY=$(echo "$LOC" | jq -r '.city')
-COUNTRY=$(echo "$LOC" | jq -r '.country')
+CITY=$(field "$LOC" city)
+COUNTRY=$(field "$LOC" country)
 
 OLD_LOC=""
 [[ -f "$LOC_FILE" ]] && OLD_LOC=$(cat "$LOC_FILE")
@@ -26,6 +28,7 @@ if [[ ! -f "$TIMINGS_FILE" ]]; then
   find "$CACHE_DIR" -name 'timings-*.json' ! -name "timings-$TODAY.json" -delete
 fi
 
+TIMINGS=$(cat "$TIMINGS_FILE")
 NAMES=("Fajr" "Dhuhr" "Asr" "Maghrib" "Isha")
 LABELS=("Subuh" "Zohor" "Asar" "Maghrib" "Isyak")
 NOW=$(date +%H:%M)
@@ -34,7 +37,7 @@ GREEN=$'\033[0;32m'
 RESET=$'\033[0m'
 
 for i in "${!NAMES[@]}"; do
-  T=$(jq -r ".data.timings.${NAMES[$i]}" "$TIMINGS_FILE" | cut -d' ' -f1)
+  T=$(field "$TIMINGS" "${NAMES[$i]}")
   MARK=""
   if [[ -z "$NEXT" && "$T" > "$NOW" ]]; then
     MARK=" <-"

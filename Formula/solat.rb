@@ -2,10 +2,8 @@ class Solat < Formula
   desc "Malaysia-aware prayer times CLI"
   homepage "https://github.com/ashrafhamil/homebrew-solat"
   url "https://github.com/ashrafhamil/homebrew-solat.git", branch: "main"
-  version "1.1.0"
+  version "1.2.0"
   license "MIT"
-
-  depends_on "jq"
 
   def install
     bin.install "solat"
